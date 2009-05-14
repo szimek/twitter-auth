@@ -13,7 +13,7 @@ end
 
 class User < TwitterAuth::GenericUser; end
 
-require 'remarkable'
+require 'remarkable_rails'
 require File.dirname(__FILE__) + '/fixtures/factories'
 require File.dirname(__FILE__) + '/fixtures/fakeweb'
 require File.dirname(__FILE__) + '/fixtures/twitter'
