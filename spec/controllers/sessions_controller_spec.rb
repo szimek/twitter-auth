@@ -181,6 +181,7 @@ describe SessionsController do
         end
 
         it 'should call logout_keeping_session! to remove session info' do
+          User.stub(:authenticate).and_return(false)
           controller.should_receive(:logout_keeping_session!)
           post :create
         end

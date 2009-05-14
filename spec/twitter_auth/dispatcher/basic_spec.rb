@@ -17,8 +17,8 @@ describe TwitterAuth::Dispatcher::Basic do
   describe '#request' do
     before do
       @dispatcher = TwitterAuth::Dispatcher::Basic.new(@user)
-      FakeWeb.register_uri('https://twitter.com:443/fake.json', :string => {'fake' => true}.to_json)
-        FakeWeb.register_uri('https://twitter.com:443/fake.xml', :string => '<fake>true</fake>')
+      FakeWeb.register_uri("https://#{@user.login}:#{@user.password}@twitter.com:443/fake.json", :string => {'fake' => true}.to_json)
+      FakeWeb.register_uri("https://#{@user.login}:#{@user.password}@twitter.com:443/fake.xml", :string => '<fake>true</fake>')
     end
     
     it 'should automatically parse JSON if valid' do
@@ -49,22 +49,22 @@ describe TwitterAuth::Dispatcher::Basic do
     end
 
     it "should raise a TwitterAuth::Dispatcher::Error if response code isn't 200" do
-      FakeWeb.register_uri('https://twitter.com:443/bad_response.json', :string => {'error' => 'bad response'}.to_json, :status => ['401', 'Unauthorized'])
+      FakeWeb.register_uri("https://#{@user.login}:#{@user.password}@twitter.com:443/bad_response.json", :string => {'error' => 'bad response'}.to_json, :status => ['401', 'Unauthorized'])
       lambda{@dispatcher.request(:get, '/bad_response')}.should raise_error(TwitterAuth::Dispatcher::Error)
     end
 
     it 'should set the error message to the JSON message' do
-      FakeWeb.register_uri('https://twitter.com:443/bad_response.json', :string => {'error' => 'bad response'}.to_json, :status => ['403', 'Forbidden'])
+      FakeWeb.register_uri("https://#{@user.login}:#{@user.password}@twitter.com:443/bad_response.json", :string => {'error' => 'bad response'}.to_json, :status => ['403', 'Forbidden'])
       lambda{@dispatcher.request(:get, '/bad_response')}.should raise_error(TwitterAuth::Dispatcher::Error, 'bad response')
     end
 
     it 'should raise a TwitterAuth::Dispatcher::Unauthorized on 401' do
-      FakeWeb.register_uri('https://twitter.com:443/unauthenticated_response.xml', :string => "<hash>\n<request>/unauthenticated_response.xml</request>\n<error>bad response</error>\n</hash>", :status => ['401', 'Unauthorized'])
+      FakeWeb.register_uri("https://#{@user.login}:#{@user.password}@twitter.com:443/unauthenticated_response.xml", :string => "<hash>\n<request>/unauthenticated_response.xml</request>\n<error>bad response</error>\n</hash>", :status => ['401', 'Unauthorized'])
       lambda{@dispatcher.request(:get, '/unauthenticated_response.xml')}.should raise_error(TwitterAuth::Dispatcher::Unauthorized)
     end
 
     it 'should set the error message to the XML message' do
-      FakeWeb.register_uri('https://twitter.com:443/bad_response.xml', :string => "<hash>\n<request>/bad_response.xml</request>\n<error>bad response</error>\n</hash>", :status => ['403', 'Forbidden'])
+      FakeWeb.register_uri("https://#{@user.login}:#{@user.password}@twitter.com:443/bad_response.xml", :string => "<hash>\n<request>/bad_response.xml</request>\n<error>bad response</error>\n</hash>", :status => ['403', 'Forbidden'])
       lambda{@dispatcher.request(:get, '/bad_response')}.should raise_error(TwitterAuth::Dispatcher::Error, 'bad response')
     end
   end

@@ -51,7 +51,7 @@ describe TwitterAuth::BasicUser do
     end
 
     it 'should return false when a 401 unauthorized happens' do
-      FakeWeb.register_uri(:get, 'https://twitter.com:443/account/verify_credentials.json', :string => '401 "Unauthorized"', :status => ['401',' Unauthorized'])
+      FakeWeb.register_uri(:get, 'https://twitterman:wrong@twitter.com:443/account/verify_credentials.json', :string => '401 "Unauthorized"', :status => ['401',' Unauthorized'])
       User.verify_credentials('twitterman','wrong').should be_false
     end
   end
