@@ -59,6 +59,6 @@ class SessionsController < ApplicationController
   
   def destroy
     logout_keeping_session!
-    redirect_back_or_default('/')
+    redirect_to '/'
   end
 end
