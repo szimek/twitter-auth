@@ -1,3 +1,5 @@
+require 'grackle'
+
 module TwitterAuth
   class Error < StandardError; end
 
@@ -81,6 +83,10 @@ module TwitterAuth
 
   def self.authorize_path
     config['authorize_path'] || '/oauth/authorize'
+  end
+
+  def self.twitter
+    @client ||= Grackle::Client.new
   end
 end
 

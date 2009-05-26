@@ -55,6 +55,15 @@ describe TwitterAuth do
     end
   end
 
+  describe '.twitter' do
+    it 'should return Grackle::Client instance' do
+      TwitterAuth.twitter.should be_an_instance_of(Grackle::Client)
+    end
+    it 'should not use authentication' do
+      TwitterAuth.twitter.auth.should be_empty
+    end
+  end
+
   describe '.net' do
     before do
       stub_basic!
