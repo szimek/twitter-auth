@@ -93,8 +93,8 @@ describe TwitterAuth::OauthUser do
     end
 
     it 'should use my token and secret' do
-      @user.twitter.token.should == @user.access_token
-      @user.twitter.secret.should == @user.access_secret
+      @user.twitter.auth[:token].should == @user.access_token
+      @user.twitter.auth[:token_secret].should == @user.access_secret
     end
   end
 end

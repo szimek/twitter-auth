@@ -115,10 +115,6 @@ describe TwitterAuth::BasicUser do
     it 'should be an instance of TwitterAuth::Dispatcher::Basic' do
       @user.twitter.class.should == TwitterAuth::Dispatcher::Basic
     end
-
-    it 'should have the correct user set' do
-      @user.twitter.user.should == @user
-    end
   end
 
   describe 'changing usernames' do

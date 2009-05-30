@@ -6,17 +6,23 @@ module TwitterAuth
       end
 
       base.extend TwitterAuth::OauthUser::ClassMethods
-      base.extend TwitterAuth::Dispatcher::Shared
     end
-    
+
     module ClassMethods
       def identify_or_create_from_access_token(token, secret=nil)
         raise ArgumentError, 'Must authenticate with an OAuth::AccessToken or the string access token and secret.' unless (token && secret) || token.is_a?(OAuth::AccessToken)
-        
+
         token = OAuth::AccessToken.new(TwitterAuth.consumer, token, secret) unless token.is_a?(OAuth::AccessToken)
+        client = Grackle::Client.new(:ssl => true,
+                                     :auth => {
+                                       :type => :oauth,
+                                       :consumer_key => TwitterAuth.consumer.key,
+                                       :consumer_secret => TwitterAuth.consumer.secret,
+                                       :token => token.token,
+                                       :token_secret => token.secret
+                                     })
         
-        response = token.get(TwitterAuth.path_prefix + '/account/verify_credentials.json')
-        user_info = handle_response(response)
+        user_info = client.account.verify_credentials?
         
         if user = User.find_by_twitter_id(user_info['id'].to_s)
           user.login = user_info['screen_name']
@@ -26,7 +32,7 @@ module TwitterAuth
           user.save
           user
         else
-          User.create_from_twitter_hash_and_token(user_info, token) 
+          User.create_from_twitter_hash_and_token(user_info, token)
         end
       end
 
@@ -41,6 +47,6 @@ module TwitterAuth
 
     def token
       OAuth::AccessToken.new(TwitterAuth.consumer, access_token, access_secret)
-    end 
+    end
   end
 end

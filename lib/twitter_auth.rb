@@ -92,9 +92,9 @@ end
 
 require 'twitter_auth/controller_extensions'
 require 'twitter_auth/cryptify'
+require 'twitter_auth/dispatcher/shared'
 require 'twitter_auth/dispatcher/oauth'
 require 'twitter_auth/dispatcher/basic'
-require 'twitter_auth/dispatcher/shared'
 
 module TwitterAuth
   module Dispatcher
