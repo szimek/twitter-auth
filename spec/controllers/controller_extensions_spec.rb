@@ -5,6 +5,8 @@ ActionController::Routing::Routes.draw do |map|
 end
 
 class TwitterAuthTestController < ApplicationController
+  include TwitterAuth::Authentication
+
   before_filter :login_required, :only => [:login_required_action]
 
   def login_required_action
@@ -75,21 +77,26 @@ describe TwitterAuthTestController do
       get :pass_auth, :message => 'Eat at Joes.'
       flash[:notice].should == 'Eat at Joes.'
     end
+
+    it 'should call after_authentication_succeeded' do
+      controller.should_receive(:after_authentication_succeeded).once
+      get :pass_auth
+    end
   end
 
   describe '#current_user' do
     it 'should find the user based on the session user_id' do
       user = Factory.create(:twitter_oauth_user)
-      request.session[:user_id] = user.id
+      request.session[:user_id] = user.user.id
       get(:current_user_action)
-      assigns[:user].should == user
+      assigns[:user].should == user.user
     end
 
     it 'should log the user in through a cookie' do
-      user = Factory(:twitter_oauth_user, :remember_token => 'abc', :remember_token_expires_at => (Time.now + 10.days))
+      twitter_user = Factory(:twitter_oauth_user, :remember_token => 'abc', :remember_token_expires_at => (Time.now + 10.days))
       controller.stub!(:cookies).and_return({:remember_token => 'abc'})
       get :current_user_action
-      assigns[:user].should == user
+      assigns[:user].should == twitter_user.user
     end
 
     it 'should return nil if there is no user matching that id' do
@@ -115,7 +122,7 @@ describe TwitterAuthTestController do
   describe '#access_denied' do
     it 'should redirect to the login path' do
       get :access_denied_action
-      should redirect_to(login_path)
+      should redirect_to(twitter_login_path)
     end
 
     it 'should store the location first' do
@@ -140,7 +147,7 @@ describe TwitterAuthTestController do
   describe 'logout_keeping_session!' do
     before do
       @user = Factory.create(:twitter_oauth_user)
-      request.session[:user_id] = @user.id
+      request.session[:user_id] = @user.user.id
     end
 
     it 'should unset session[:user_id]' do
@@ -149,9 +156,9 @@ describe TwitterAuthTestController do
     end
 
     it 'should unset current_user' do
-      controller.send(:current_user).should == @user
+      controller.send(:current_user).should == @user.user
       get :logout_keeping_session_action
-      controller.send(:current_user).should be_false
+      controller.send(:current_user).should be_nil
     end
 
     it 'should unset the cookie' do

@@ -1,11 +1,12 @@
 require File.dirname(__FILE__) + '/../../spec_helper'
 
-describe TwitterAuth::GenericUser do
-  should_validate_presence_of :login, :twitter_id
+describe TwitterUser do
+  should_validate_presence_of :login
   should_validate_format_of :login, 'some_guy', 'awesome', 'cool_man'
   should_not_validate_format_of :login, 'with-dashes', 'with.periods', 'with spaces'
   should_validate_length_of :login, :in => 1..15
-  
+  should_have_one :user, :foreign_key => 'twitter_id'
+
   it 'should validate uniqueness of login' do
     Factory.create(:twitter_oauth_user)
     Factory.build(:twitter_oauth_user).should have_at_least(1).errors_on(:login)
@@ -27,23 +28,24 @@ describe TwitterAuth::GenericUser do
 
   describe '.new_from_twitter_hash' do
     it 'should raise an argument error if the hash does not have a screen_name attribute' do
-      lambda{User.new_from_twitter_hash({'id' => '123'})}.should raise_error(ArgumentError, 'Invalid hash: must include screen_name.')
+      lambda{TwitterUser.new_from_twitter_hash({'id' => '123'})}.should raise_error(ArgumentError, 'Invalid hash: must include screen_name.')
     end
 
     it 'should raise an argument error if the hash does not have an id attribute' do
-      lambda{User.new_from_twitter_hash({'screen_name' => 'abc123'})}.should raise_error(ArgumentError, 'Invalid hash: must include id.')
+      lambda{TwitterUser.new_from_twitter_hash({'screen_name' => 'abc123'})}.should raise_error(ArgumentError, 'Invalid hash: must include id.')
     end
 
     it 'should return a user' do
-      User.new_from_twitter_hash({'id' => '123', 'screen_name' => 'twitterman'}).should be_a(User)
+      TwitterUser.new_from_twitter_hash({'id' => '123', 'screen_name' => 'twitterman'}).should be_a(TwitterUser)
     end
 
     it 'should assign login to the screen_name' do
-      User.new_from_twitter_hash({'id' => '123', 'screen_name' => 'twitterman'}).login.should == 'twitterman'
+      TwitterUser.new_from_twitter_hash({'id' => '123', 'screen_name' => 'twitterman'}).login.should == 'twitterman'
     end
 
     it 'should assign twitter attributes that are provided' do
-      u = User.new_from_twitter_hash({'id' => '4566', 'screen_name' => 'twitterman', 'name' => 'Twitter Man', 'description' => 'Saving the world for all Tweet kind.'})
+      u = TwitterUser.new_from_twitter_hash({'id' => '4566', 'screen_name' => 'twitterman', 'name' => 'Twitter Man', 'description' => 'Saving the world for all Tweet kind.'})
+      u.id.should == 4566
       u.name.should == 'Twitter Man'
       u.description.should == 'Saving the world for all Tweet kind.'
     end
@@ -130,17 +132,17 @@ describe TwitterAuth::GenericUser do
     end
 
     it 'should find the user with the specified remember_token' do
-      User.from_remember_token('abcdef').should == @user
+      TwitterUser.from_remember_token('abcdef').should == @user
     end
 
     it 'should not find a user with an expired token' do
       user2 = Factory(:twitter_oauth_user, :login => 'walker', :remember_token => 'ghijkl', :remember_token_expires_at => (Time.now - 10.days))
-      User.from_remember_token('ghijkl').should be_nil
+      TwitterUser.from_remember_token('ghijkl').should be_nil
     end
 
     it 'should not find a user with a nil token and an expiration' do
       user = Factory(:twitter_oauth_user, :login => 'stranger', :remember_token => nil, :remember_token_expires_at => (Time.now + 10.days))
-      User.from_remember_token(nil).should be_nil
+      TwitterUser.from_remember_token(nil).should be_nil
     end
   end
 end

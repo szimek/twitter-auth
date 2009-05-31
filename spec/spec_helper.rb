@@ -5,13 +5,14 @@ rescue LoadError
   exit
 end
 
-require File.dirname(__FILE__) + '/../app/models/twitter_auth/generic_user'
-
-class TwitterAuth::GenericUser
+class TwitterUser < ActiveRecord::Base
   def self.table_name; 'twitter_auth_users' end
+  include TwitterAuth::User
 end
 
-class User < TwitterAuth::GenericUser; end
+class User < ActiveRecord::Base
+  belongs_to :twitter_user, :foreign_key => 'twitter_id'
+end
 
 require 'remarkable_rails'
 require File.dirname(__FILE__) + '/fixtures/factories'
@@ -24,11 +25,11 @@ ActiveRecord::Base.logger = Logger.new(plugin_spec_dir + "/debug.log")
 load(File.dirname(__FILE__) + '/schema.rb')
 
 def define_basic_user_class!
-  TwitterAuth::GenericUser.send :include, TwitterAuth::BasicUser 
+  TwitterUser.send :include, TwitterAuth::User::Auth::HTTPBasic
 end
 
 def define_oauth_user_class!
-  TwitterAuth::GenericUser.send :include, TwitterAuth::OauthUser  
+  TwitterUser.send :include, TwitterAuth::User::Auth::Oauth
 end
 
 def stub_oauth!

@@ -8,7 +8,7 @@ module TwitterAuth
       attr_accessor :user
 
       def initialize(user)
-        raise TwitterAuth::Error, 'Dispatcher must be initialized with a User.' unless user.is_a?(TwitterAuth::BasicUser)
+        raise TwitterAuth::Error, 'Dispatcher must be initialized with a User.' unless user.is_a?(TwitterAuth::User::Auth::HTTPBasic)
         self.user = user
       end
 

@@ -1,31 +1,31 @@
-require File.dirname(__FILE__) + '/../spec_helper'
+require File.dirname(__FILE__) + '/../../spec_helper'
 
-describe SessionsController do
+describe TwitterAuth::SessionsController do
   integrate_views
 
   describe 'routes' do
-    it 'should route /session/new to SessionsController#new' do
-      params_from(:get, '/session/new').should == {:controller => 'sessions', :action => 'new'}
+    it 'should route /twitter/session/new to TwitterAuth::SessionsController#new' do
+      params_from(:get, '/twitter/session/new').should == {:controller => 'twitter_auth/sessions', :action => 'new'}
     end
 
-    it 'should route /login to SessionsController#new' do
-      params_from(:get, '/login').should == {:controller => 'sessions', :action => 'new'}
+    it 'should route /twitter/login to TwitterAuth::SessionsController#new' do
+      params_from(:get, '/twitter/login').should == {:controller => 'twitter_auth/sessions', :action => 'new'}
     end
 
-    it 'should route /logout to SessionsController#destroy' do
-      params_from(:get, '/logout').should == {:controller => 'sessions', :action => 'destroy'}
+    it 'should route /twitter/logout to TwitterAuth::SessionsController#destroy' do
+      params_from(:get, '/twitter/logout').should == {:controller => 'twitter_auth/sessions', :action => 'destroy'}
     end
 
-    it 'should route DELETE /session to SessionsController#destroy' do
-      params_from(:delete, '/session').should == {:controller => 'sessions', :action => 'destroy'}
+    it 'should route DELETE /twitter/session to TwitterAuth::SessionsController#destroy' do
+      params_from(:delete, '/twitter/session').should == {:controller => 'twitter_auth/sessions', :action => 'destroy'}
     end
 
-    it 'should route /oauth_callback to SessionsController#oauth_callback' do
-      params_from(:get, '/oauth_callback').should == {:controller => 'sessions', :action => 'oauth_callback'}
+    it 'should route /twitter/oauth_callback to TwitterAuth::SessionsController#oauth_callback' do
+      params_from(:get, '/twitter/oauth_callback').should == {:controller => 'twitter_auth/sessions', :action => 'oauth_callback'}
     end
 
-    it 'should route POST /session to SessionsController#create' do
-      params_from(:post, '/session').should == {:controller => 'sessions', :action => 'create'}
+    it 'should route POST /twitter/session to TwitterAuth::SessionsController#create' do
+      params_from(:post, '/twitter/session').should == {:controller => 'twitter_auth/sessions', :action => 'create'}
     end
   end
 
@@ -54,7 +54,7 @@ describe SessionsController do
 
       it 'should redirect to the oauth_callback if one is specified' do
         TwitterAuth.stub!(:oauth_callback).and_return('http://localhost:3000/development')
-        TwitterAuth.stub!(:oauth_callback?).and_return(true)        
+        TwitterAuth.stub!(:oauth_callback?).and_return(true)
 
         get :new
         response.should redirect_to('https://twitter.com/oauth/authorize?oauth_token=faketoken&oauth_callback=' + CGI.escape(TwitterAuth.oauth_callback))
@@ -74,6 +74,7 @@ describe SessionsController do
         end
 
         it 'should call authentication_failed' do
+          TwitterUser.stub!(:identify_or_create_from_access_token).and_return(Factory.create(:twitter_oauth_user, :id => 123))
           controller.should_receive(:authentication_failed).any_number_of_times
           get :oauth_callback, :oauth_token => 'faketoken'
         end
@@ -81,22 +82,25 @@ describe SessionsController do
 
       describe 'with proper info' do
         before do
-          @user = Factory.create(:twitter_oauth_user, :twitter_id => '123')
+          @twitter_user = Factory.create(:twitter_oauth_user, :id => '123')
           @time = Time.now
           @remember_token = ActiveSupport::SecureRandom.hex(10)
-          
+
           Time.stub!(:now).and_return(@time)
           ActiveSupport::SecureRandom.stub!(:hex).and_return(@remember_token)
 
           request.session[:request_token] = 'faketoken'
           request.session[:request_token_secret] = 'faketokensecret'
-          get :oauth_callback, :oauth_token => 'faketoken'
-        end 
+        end
 
         describe 'building the access token' do
+          before do
+            get :oauth_callback, :oauth_token => 'faketoken'
+          end
+
           it 'should rebuild the request token' do
             correct_token =  OAuth::RequestToken.new(TwitterAuth.consumer,'faketoken','faketokensecret')
-            
+
             %w(token secret).each do |att|
               assigns[:request_token].send(att).should == correct_token.send(att)
             end
@@ -113,23 +117,87 @@ describe SessionsController do
             session[:request_token_secret].should be_nil
           end
         end
-        
-        describe 'identifying the user' do
-          it "should find the user" do         
-            assigns[:user].should == @user
+
+        describe 'identifying the twitter user' do
+          before do
+            get :oauth_callback, :oauth_token => 'faketoken'
           end
 
-          it "should assign the user id to the session" do
-            session[:user_id].should == @user.id
+          it "should find the twitter user" do
+            assigns[:twitter_user].should == @twitter_user
           end
 
           it "should call remember me" do
-            @user.reload
-            @user.remember_token.should == @remember_token
+            @twitter_user.reload
+            @twitter_user.remember_token.should == @remember_token
           end
 
           it "should set a cookie" do
             cookies[:remember_token].should == @remember_token
+          end
+        end
+
+        describe 'creating the twitter user' do          
+          before do
+            # TODO remove (or better - don't create) TwitterUser and User
+            get :oauth_callback, :oauth_token => 'faketoken'
+          end
+
+          it 'should create the twitter user'
+          it "should call remember me"
+          it "should set a cookie"
+        end
+
+        describe 'when user is already logged in using other auth system' do
+          before do
+            @user = Factory.create(:user)
+          end
+
+          describe 'and has logged in previously with his twitter account' do
+            before do
+              request.session[:user_id] = @user.id
+              get :oauth_callback, :oauth_token => 'faketoken'
+            end
+
+            it 'should find twitter user' do
+              assigns[:twitter_user].should == @twitter_user
+            end
+
+            it 'should assign found twitter_user to logged in user' do
+              assigns[:user].twitter_id.should == assigns[:twitter_user].id
+            end
+
+            it 'should not change session[:user_id]' do
+              session[:user_id].should == @user.id
+            end
+
+            it 'should destroy old user' do
+              User.exists?(@twitter_user.user).should be_false
+            end
+          end
+
+          describe 'and has never logged in previously with his twitter account' do
+            # TODO remove (or better - don't create) TwitterUser and User
+            it 'should create twitter user'
+            it 'should assign created twitter_user to logged in user'
+            it 'should not change session[:user_id]'
+          end
+        end
+
+        describe 'when user is logged out' do
+          describe 'and has logged in previously with his twitter account' do
+            before do
+              get :oauth_callback, :oauth_token => 'faketoken'
+            end
+
+            it "should log user in" do
+              session[:user_id].should == @twitter_user.user.id
+            end
+          end
+          describe 'and has never logged in previously with his twitter account' do
+            # TODO remove (or better - don't create) TwitterUser and User
+            it "should create new user"
+            it "should log user in"
           end
         end
 
@@ -163,49 +231,48 @@ describe SessionsController do
     before do
       stub_basic!
     end
-    
+
     describe '#new' do
       it 'should render the new action' do
         get :new
-        response.should render_template('sessions/new')
+        response.should render_template('twitter_auth/sessions/new')
       end
 
       it 'should render the login form' do
         get :new
-        response.should have_tag('form[action=/session][id=login_form][method=post]')
+        response.should have_tag('form[action=/twitter/session][id=login_form][method=post]')
       end
-      
+
       describe '#create' do
         before do
-          @user = Factory.create(:twitter_basic_user, :twitter_id => '123')
+          @user = Factory.create(:twitter_basic_user, :id => '123')
         end
 
         it 'should call logout_keeping_session! to remove session info' do
-          User.stub(:authenticate).and_return(false)
+          TwitterUser.stub(:authenticate).and_return(false)
           controller.should_receive(:logout_keeping_session!)
           post :create
         end
 
         it 'should try to authenticate the user' do
-          User.should_receive(:authenticate)
+          TwitterUser.should_receive(:authenticate)
           post :create
         end
 
         it 'should call authentication_failed on authenticate failure' do
-          User.should_receive(:authenticate).and_return(nil)
+          TwitterUser.should_receive(:authenticate).and_return(nil)
           post :create, :login => 'wrong', :password => 'false'
           response.should redirect_to('/login')
         end
 
         it 'should call authentication_succeeded on authentication success' do
-          User.should_receive(:authenticate).and_return(@user)    
+          TwitterUser.should_receive(:authenticate).and_return(@user)
           post :create, :login => 'twitterman', :password => 'cool'
           response.should redirect_to('/')
           flash[:notice].should_not be_blank
         end
       end
     end
-
   end
 
   describe '#destroy' do

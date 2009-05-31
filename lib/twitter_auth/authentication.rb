@@ -2,11 +2,20 @@ module TwitterAuth
   # These methods borrow HEAVILY from Rick Olsen's
   # Restful Authentication. All cleverness props
   # go to him, not me.
-  module ControllerExtensions
+  module Authentication
     def self.included(base)
       base.send :helper_method, :current_user, :logged_in?, :authorized?
+      base.send :hide_action, :current_user, :logged_in?
     end
 
+    def current_user
+      @current_user ||= (user_from_session || user_from_cookie)
+    end
+
+    def logged_in?
+      !!current_user
+    end
+    
     protected
 
     def authentication_failed(message, destination='/')
@@ -15,19 +24,26 @@ module TwitterAuth
     end
 
     def authentication_succeeded(message = 'You have logged in successfully.', destination = '/')
+      after_authentication_succeeded
       flash[:notice] = message
       redirect_to destination
     end
 
-    def current_user
-      @current_user ||= 
-        if session[:user_id]
-          User.find_by_id(session[:user_id])
-        elsif cookies[:remember_token]
-          User.from_remember_token(cookies[:remember_token])
-        else
-          false
+    def after_authentication_succeeded
+    end
+
+    def user_from_session
+      if session[:user_id]
+        ::User.find_by_id(session[:user_id])
+      end
+    end
+
+    def user_from_cookie
+      if token = cookies[:remember_token]
+        if twitter_user = TwitterUser.from_remember_token(token)
+          twitter_user.user
         end
+      end
     end
 
     def current_user=(new_user)
@@ -40,12 +56,12 @@ module TwitterAuth
     end
 
     def login_required
-      authorized? || access_denied 
+      authorized? || access_denied
     end
 
     def access_denied
       store_location
-      redirect_to login_path
+      redirect_to twitter_login_path
     end
 
     def store_location
@@ -57,10 +73,6 @@ module TwitterAuth
       session[:return_to] = nil
     end
 
-    def logged_in?
-      !!current_user
-    end
-
     def logout_keeping_session!
       session[:user_id] = nil
       @current_user = nil
@@ -68,5 +80,3 @@ module TwitterAuth
     end
   end
 end
-
-ActionController::Base.send(:include, TwitterAuth::ControllerExtensions)

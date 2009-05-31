@@ -7,7 +7,7 @@ module TwitterAuth
   end
 
   def self.base_url
-    config['base_url'] || 'https://twitter.com'    
+    config['base_url'] || 'https://twitter.com'
   end
 
   def self.path_prefix
@@ -84,11 +84,14 @@ module TwitterAuth
   end
 end
 
-require 'twitter_auth/controller_extensions'
+require 'twitter_auth/user'
+require 'twitter_auth/authentication'
 require 'twitter_auth/cryptify'
 require 'twitter_auth/dispatcher/oauth'
 require 'twitter_auth/dispatcher/basic'
 require 'twitter_auth/dispatcher/shared'
+require 'twitter_auth/extensions/active_record'
+require 'twitter_auth/extensions/routes'
 
 module TwitterAuth
   module Dispatcher
@@ -96,4 +99,3 @@ module TwitterAuth
     class Unauthorized < Error; end
   end
 end
-

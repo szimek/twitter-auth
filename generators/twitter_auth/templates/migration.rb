@@ -1,7 +1,6 @@
 class TwitterAuthMigration < ActiveRecord::Migration
   def self.up
-    create_table :users do |t|
-      t.string :twitter_id
+    create_table :twitter_users do |t|
       t.string :login
 <% if options[:oauth] -%>
       t.string :access_token
@@ -41,9 +40,12 @@ class TwitterAuthMigration < ActiveRecord::Migration
 
       t.timestamps
     end
+
+    add_column :users, :twitter_id, :integer
   end
 
   def self.down
-    drop_table :users
+    drop_table :twitter_users
+    remove_column :users, :twitter_id
   end
 end
