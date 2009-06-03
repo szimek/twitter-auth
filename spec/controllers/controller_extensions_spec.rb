@@ -77,11 +77,6 @@ describe TwitterAuthTestController do
       get :pass_auth, :message => 'Eat at Joes.'
       flash[:notice].should == 'Eat at Joes.'
     end
-
-    it 'should call after_authentication_succeeded' do
-      controller.should_receive(:after_authentication_succeeded).once
-      get :pass_auth
-    end
   end
 
   describe '#current_user' do
