@@ -79,7 +79,7 @@ class TwitterAuth::SessionsController < ApplicationController
   protected
   def merge_account(account)
     User.transaction do
-      before_merging_accounts(@user, account)
+      before_merging_accounts(@user, account) if respond_to?(:before_merging_account)
       account.destroy
       @user.update_attributes(:twitter_id => @twitter_user.id)
     end
@@ -88,8 +88,5 @@ class TwitterAuth::SessionsController < ApplicationController
   def sign_in
     @user = @twitter_user.user || @twitter_user.create_user
     session[:user_id] = @user.id
-  end
-
-  def before_merging_accounts(new_account, old_account)
   end
 end
