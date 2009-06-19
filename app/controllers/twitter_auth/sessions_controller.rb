@@ -86,7 +86,7 @@ class TwitterAuth::SessionsController < ApplicationController
   end
 
   def sign_in
-    @user = @twitter_user.user || @twitter_user.create_user
+    @user = ::User.find_or_create_by_twitter_id(@twitter_user.id)
     session[:user_id] = @user.id
   end
 end

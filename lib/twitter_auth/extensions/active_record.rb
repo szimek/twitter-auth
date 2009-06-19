@@ -7,7 +7,7 @@ module TwitterAuth
 
       module ClassMethods
         def twitter_authenticated
-          belongs_to :twitter_user, :foreign_key => 'twitter_id'
+          belongs_to :twitter_user, :foreign_key => 'twitter_id', :dependent => :destroy
         end
       end
     end
