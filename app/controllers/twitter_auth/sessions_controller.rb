@@ -59,7 +59,7 @@ class TwitterAuth::SessionsController < ApplicationController
     end
 
     # TODO leave it in User or move it to TwitterUser?
-    cookies[:remember_token] = @user.twitter_user.remember_me
+    # cookies[:remember_token] = @user.twitter_user.remember_me
 
     authentication_succeeded
   rescue Net::HTTPServerException, Net::HTTPFatalError, TwitterAuth::Dispatcher::Error => e
