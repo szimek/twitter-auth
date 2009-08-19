@@ -9,6 +9,7 @@ class TwitterAuth::SessionsController < ApplicationController
       @request_token = TwitterAuth.consumer.get_request_token
       session[:request_token] = @request_token.token
       session[:request_token_secret] = @request_token.secret
+      session[:return_to] = request.env["HTTP_REFERER"]
 
       url = @request_token.authorize_url
       url << "&oauth_callback=#{CGI.escape(TwitterAuth.oauth_callback)}" if TwitterAuth.oauth_callback?
